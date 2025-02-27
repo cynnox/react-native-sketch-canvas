@@ -1,7 +1,7 @@
 import React from 'react';
-import {View, TouchableOpacity, FlatList} from 'react-native';
+import { FlatList, TouchableOpacity, View } from 'react-native';
 import SketchCanvas from './SketchCanvas';
-import type {RNSketchCanvasProps, PathData} from './types';
+import type { PathData, RNSketchCanvasProps } from './types';
 
 type CanvasState = {
   color: any;
@@ -33,7 +33,9 @@ export default class RNSketchCanvas extends React.Component<
     canvasStyle: null,
     onStrokeStart: () => {},
     onStrokeChanged: () => {},
+    onStrokeChangedData: () => {},
     onStrokeEnd: () => {},
+    onPathIdAssigned: () => {},
     onClosePressed: () => {},
     onUndoPressed: () => {},
     onClearPressed: () => {},
@@ -124,6 +126,10 @@ export default class RNSketchCanvas extends React.Component<
 
   deletePath(id: any) {
     this._sketchCanvas.deletePath(id);
+  }
+
+  setPathId(pathId : any) {
+    this._sketchCanvas.setPathId(pathId);
   }
 
   save() {
@@ -301,6 +307,8 @@ export default class RNSketchCanvas extends React.Component<
           }
           onStrokeStart={this.props.onStrokeStart}
           onStrokeChanged={this.props.onStrokeChanged}
+          onStrokeChangedData={this.props.onStrokeChangedData}
+          onPathIdAssigned={this.props.onPathIdAssigned}
           onStrokeEnd={this.props.onStrokeEnd}
           user={this.props.user}
           strokeWidth={this.state.strokeWidth}
@@ -333,4 +341,4 @@ RNSketchCanvas.DOCUMENT = SketchCanvas.DOCUMENT;
 RNSketchCanvas.LIBRARY = SketchCanvas.LIBRARY;
 RNSketchCanvas.CACHES = SketchCanvas.CACHES;
 
-export {SketchCanvas};
+export { SketchCanvas };

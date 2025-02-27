@@ -3,16 +3,16 @@
 import memoize from 'memoize-one';
 import React from 'react';
 import ReactNative, {
-  requireNativeComponent,
   NativeModules,
-  UIManager,
   PanResponder,
   PixelRatio,
   Platform,
   processColor,
+  requireNativeComponent,
+  UIManager,
 } from 'react-native';
-import {requestPermissions} from './handlePermissions';
-import type {SketchCanvasProps, CanvasText, PathData, Path} from './types';
+import { requestPermissions } from './handlePermissions';
+import type { CanvasText, Path, PathData, SketchCanvasProps } from './types';
 
 const SketchViewName = 'RNSketchCanvas';
 const RNSketchCanvas = requireNativeComponent(
@@ -32,8 +32,10 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
     onPathsChange: () => {},
     onStrokeStart: (_x: number, _y: number) => {},
     onStrokeChanged: () => {},
+    onStrokeChangedData: () => {},
     onStrokeEnd: () => {},
     onSketchSaved: () => {},
+    onPathIdAssigned:() => {},
     user: null,
 
     touchEnabled: true,
@@ -54,6 +56,8 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
   _size: {width: number; height: number};
   _initialized: boolean;
   panResponder: any;
+  _pathIds : any[];
+  _gestureState : any;
 
   state = {
     text: null,
@@ -74,25 +78,34 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
     this._size = {width: 0, height: 0};
     this._initialized = false;
 
+    this._pathIds = [];
+    this._gestureState = null;
+
     this.panResponder = PanResponder.create({
       // Ask to be the responder:
-      onStartShouldSetPanResponder: (_evt, _gestureState) => true,
-      onStartShouldSetPanResponderCapture: (_evt, _gestureState) => true,
-      onMoveShouldSetPanResponder: (_evt, _gestureState) => true,
-      onMoveShouldSetPanResponderCapture: (_evt, _gestureState) => true,
+      onStartShouldSetPanResponder: (_evt: any, _gestureState: any) => true,
+      onStartShouldSetPanResponderCapture: (_evt: any, _gestureState: any) => true,
+      onMoveShouldSetPanResponder: (_evt: any, _gestureState: any) => true,
+      onMoveShouldSetPanResponderCapture: (_evt: any, _gestureState: any) => true,
 
-      onPanResponderGrant: (evt, gestureState) => {
-        if (!this.props.touchEnabled) {
+      onPanResponderGrant: (evt: { nativeEvent: any; }, gestureState: { x0: number; y0: number; }) => {
+        if (!props.touchEnabled) {
           return;
         }
+        this._gestureState = "grant";
         const e = evt.nativeEvent;
         this._offset = {x: e.pageX - e.locationX, y: e.pageY - e.locationY};
         this._path = {
-          id: parseInt(String(Math.random() * 100000000), 10),
-          color: this.props.strokeColor,
-          width: this.props.strokeWidth,
+          id: this._pathIds.length > 0 ? 
+                parseInt(this._pathIds[0] ,10) :
+                parseInt(String(Math.random() * 100000000), 10),
+          color: props.strokeColor,
+          width: props.strokeWidth,
           data: [],
         };
+
+        this._pathIds.splice(0, 1);
+        this.props.onPathIdAssigned(true);
 
         UIManager.dispatchViewManagerCommand(
           this._handle,
@@ -125,12 +138,13 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
         const x = parseFloat((gestureState.x0 - this._offset.x).toFixed(2)),
           y = parseFloat((gestureState.y0 - this._offset.y).toFixed(2));
         this._path.data.push(`${x},${y}`);
-        this.props.onStrokeStart?.(x, y);
+        props.onStrokeStart?.(x, y);
       },
-      onPanResponderMove: (_evt, gestureState) => {
-        if (!this.props.touchEnabled) {
+      onPanResponderMove: (_evt: any, gestureState: { moveX: number; moveY: number; }) => {
+        if (!props.touchEnabled) {
           return;
         }
+        this._gestureState = "move";
         if (this._path) {
           UIManager.dispatchViewManagerCommand(
             this._handle,
@@ -155,23 +169,27 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
             ),
             y = parseFloat((gestureState.moveY - this._offset.y).toFixed(2));
           this._path.data.push(`${x},${y}`);
-          this.props.onStrokeChanged?.(x, y);
+          props.onStrokeChanged?.(x, y);
+          this.getRealTimePathData();
         }
       },
-      onPanResponderRelease: (_evt, _gestureState) => {
-        if (!this.props.touchEnabled) {
+      onPanResponderRelease: (_evt: any, _gestureState: any) => {
+        if (!props.touchEnabled) {
           return;
         }
         if (this._path) {
-          this.props.onStrokeEnd?.({
-            path: this._path,
-            size: this._size,
-            drawer: this.props.user,
-          });
+          this.props.onStrokeEnd(
+            {
+              path: this._path,
+              size: this._size,
+              drawer: this.props.user,
+            }, 
+            _gestureState
+          )
           this._paths.push({
             path: this._path,
             size: this._size,
-            drawer: this.props.user,
+            drawer: props.user,
           });
         }
         UIManager.dispatchViewManagerCommand(
@@ -181,7 +199,7 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
         );
       },
 
-      onShouldBlockNativeResponder: (_evt, _gestureState) => {
+      onShouldBlockNativeResponder: (_evt: any, _gestureState: any) => {
         return true;
       },
     });
@@ -214,12 +232,16 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
   undo() {
     let lastId = -1;
     this._paths.forEach(
-      (d: any) => (lastId = d.drawer === this.props.user ? d.path.id : lastId),
+      (d: any) => (lastId = d.drawer === props?.user ? d.path.id : lastId),
     );
     if (lastId >= 0) {
       this.deletePath(lastId);
     }
     return lastId;
+  }
+
+  setPathId(pathId : any) {
+    this._pathIds.push(pathId);
   }
 
   addPath(data: Path) {
@@ -317,6 +339,19 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
         includeText,
         cropToImageSize,
         callback,
+      );
+    }
+  }
+
+  getRealTimePathData() {
+    if (this._path) {
+      this.props.onStrokeChangedData(
+         {
+          path: this._path,
+          size: this._size,
+          drawer: this.props.user,
+        },
+        this._gestureState,
       );
     }
   }

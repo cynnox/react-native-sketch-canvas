@@ -77,9 +77,11 @@ export interface SketchCanvasProps {
 
   onStrokeStart?: (x: number, y: number) => void;
   onStrokeChanged?: (x: number, y: number) => void;
-  onStrokeEnd?: (path: Path) => void;
+  onStrokeChangedData?: (path: Path, gestureState : string) => void;
+  onStrokeEnd?: (path: Path, gestureState : string ) => void;
   onSketchSaved?: (result: boolean, path: string) => void;
   onPathsChange?: (pathsCount: number) => void;
+  onPathIdAssigned?:(assigned :boolean) => void
 }
 
 export interface RNSketchCanvasProps {
@@ -87,11 +89,13 @@ export interface RNSketchCanvasProps {
   canvasStyle?: StyleProp<ViewStyle>;
   onStrokeStart?: (x: number, y: number) => void;
   onStrokeChanged?: () => void;
-  onStrokeEnd?: (path: Path) => void;
+  onStrokeChangedData?: (path: Path, gestureState : string) => void;
+  onStrokeEnd?: (path: Path, gestureState : string) => void;
   onClosePressed?: () => void;
   onUndoPressed?: (id: number) => void;
   onClearPressed?: () => void;
   onPathsChange?: (pathsCount: number) => void;
+  onPathIdAssigned?:(assigned :boolean) => void
   user?: string;
 
   closeComponent?: JSX.Element;
