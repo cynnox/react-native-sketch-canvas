@@ -266,25 +266,34 @@
 }
 
 - (void) addPath:(int) pathId strokeColor:(UIColor*) strokeColor strokeWidth:(int) strokeWidth points:(NSArray*) points {
-    bool exist = false;
+    // changes made by arun to update already drawn path
+    // bool exist = false;
+    int index=-1;
     for(int i=0; i<_paths.count; i++) {
         if (((RNSketchData*)_paths[i]).pathId == pathId) {
-            exist = true;
+            // exist = true;
+            index=i;
             break;
         }
     }
     
-    if (!exist) {
+        // if (!exist) {
         RNSketchData *data = [[RNSketchData alloc] initWithId: pathId
                                                   strokeColor: strokeColor
                                                   strokeWidth: strokeWidth
                                                        points: points];
-        [_paths addObject: data];
+        // [_paths addObject: data];
+        if(index==-1){
+            [_paths addObject: data];
+        }else{
+            _paths[index]=data;
+        }
+    
         [data drawInContext:_drawingContext];
         [self setFrozenImageNeedsUpdate];
         [self setNeedsDisplay];
         [self notifyPathsUpdate];
-    }
+//    }
 }
 
 - (void)deletePath:(int) pathId {

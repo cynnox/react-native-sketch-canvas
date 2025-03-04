@@ -11,8 +11,8 @@ import ReactNative, {
   requireNativeComponent,
   UIManager,
 } from 'react-native';
-import { requestPermissions } from './handlePermissions';
-import type { CanvasText, Path, PathData, SketchCanvasProps } from './types';
+import {requestPermissions} from './handlePermissions';
+import type {CanvasText, Path, PathData, SketchCanvasProps} from './types';
 
 const SketchViewName = 'RNSketchCanvas';
 const RNSketchCanvas = requireNativeComponent(
@@ -35,7 +35,7 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
     onStrokeChangedData: () => {},
     onStrokeEnd: () => {},
     onSketchSaved: () => {},
-    onPathIdAssigned:() => {},
+    onPathIdAssigned: () => {},
     user: null,
 
     touchEnabled: true,
@@ -56,8 +56,8 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
   _size: {width: number; height: number};
   _initialized: boolean;
   panResponder: any;
-  _pathIds : any[];
-  _gestureState : any;
+  _pathIds: any[];
+  _gestureState: any;
 
   state = {
     text: null,
@@ -84,28 +84,34 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
     this.panResponder = PanResponder.create({
       // Ask to be the responder:
       onStartShouldSetPanResponder: (_evt: any, _gestureState: any) => true,
-      onStartShouldSetPanResponderCapture: (_evt: any, _gestureState: any) => true,
+      onStartShouldSetPanResponderCapture: (_evt: any, _gestureState: any) =>
+        true,
       onMoveShouldSetPanResponder: (_evt: any, _gestureState: any) => true,
-      onMoveShouldSetPanResponderCapture: (_evt: any, _gestureState: any) => true,
+      onMoveShouldSetPanResponderCapture: (_evt: any, _gestureState: any) =>
+        true,
 
-      onPanResponderGrant: (evt: { nativeEvent: any; }, gestureState: { x0: number; y0: number; }) => {
+      onPanResponderGrant: (
+        evt: {nativeEvent: any},
+        gestureState: {x0: number; y0: number},
+      ) => {
         if (!props.touchEnabled) {
           return;
         }
-        this._gestureState = "grant";
+        this._gestureState = 'grant';
         const e = evt.nativeEvent;
         this._offset = {x: e.pageX - e.locationX, y: e.pageY - e.locationY};
         this._path = {
-          id: this._pathIds.length > 0 ? 
-                parseInt(this._pathIds[0] ,10) :
-                parseInt(String(Math.random() * 100000000), 10),
+          id:
+            this._pathIds.length > 0
+              ? parseInt(this._pathIds[0], 10)
+              : parseInt(String(Math.random() * 100000000), 10),
           color: props.strokeColor,
           width: props.strokeWidth,
           data: [],
         };
 
         this._pathIds.splice(0, 1);
-        this.props.onPathIdAssigned(true);
+        if (this.props.onPathIdAssigned) this.props.onPathIdAssigned(true);
 
         UIManager.dispatchViewManagerCommand(
           this._handle,
@@ -140,11 +146,14 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
         this._path.data.push(`${x},${y}`);
         props.onStrokeStart?.(x, y);
       },
-      onPanResponderMove: (_evt: any, gestureState: { moveX: number; moveY: number; }) => {
+      onPanResponderMove: (
+        _evt: any,
+        gestureState: {moveX: number; moveY: number},
+      ) => {
         if (!props.touchEnabled) {
           return;
         }
-        this._gestureState = "move";
+        this._gestureState = 'move';
         if (this._path) {
           UIManager.dispatchViewManagerCommand(
             this._handle,
@@ -178,14 +187,15 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
           return;
         }
         if (this._path) {
-          this.props.onStrokeEnd(
-            {
-              path: this._path,
-              size: this._size,
-              drawer: this.props.user,
-            }, 
-            _gestureState
-          )
+          if (this.props.onStrokeEnd)
+            this.props.onStrokeEnd(
+              {
+                path: this._path,
+                size: this._size,
+                drawer: this.props.user,
+              },
+              _gestureState,
+            );
           this._paths.push({
             path: this._path,
             size: this._size,
@@ -232,7 +242,7 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
   undo() {
     let lastId = -1;
     this._paths.forEach(
-      (d: any) => (lastId = d.drawer === props?.user ? d.path.id : lastId),
+      (d: any) => (lastId = d.drawer === this.props?.user ? d.path.id : lastId),
     );
     if (lastId >= 0) {
       this.deletePath(lastId);
@@ -240,7 +250,7 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
     return lastId;
   }
 
-  setPathId(pathId : any) {
+  setPathId(pathId: any) {
     this._pathIds.push(pathId);
   }
 
@@ -345,14 +355,15 @@ class SketchCanvas extends React.Component<SketchCanvasProps, CanvasState> {
 
   getRealTimePathData() {
     if (this._path) {
-      this.props.onStrokeChangedData(
-         {
-          path: this._path,
-          size: this._size,
-          drawer: this.props.user,
-        },
-        this._gestureState,
-      );
+      if (this.props.onStrokeChangedData)
+        this.props.onStrokeChangedData(
+          {
+            path: this._path,
+            size: this._size,
+            drawer: this.props.user,
+          },
+          this._gestureState,
+        );
     }
   }
 
